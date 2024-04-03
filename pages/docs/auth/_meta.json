@@ -1,0 +1,5 @@
+{
+  "prismaAdapter": "Setup avec prismaAdapter",
+  "middleware": "Middleware",
+  "providers": "Providers"
+}
