@@ -18,6 +18,9 @@ export default {
         titleTemplate: "%s – My Docs",
       };
     }
+    return {
+      titleTemplate: "My Docs"
+    };
   },
   head: (
     <>
