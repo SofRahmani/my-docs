@@ -1,6 +1,8 @@
 /* eslint-disable import/no-anonymous-default-export */
 import { GanttChart } from "lucide-react";
 import { Github } from 'lucide-react';
+import { useRouter } from 'next/router'
+
 
 export default {
   logo: (
@@ -10,9 +12,12 @@ export default {
     </>
   ),
   useNextSeoProps() {
-    return {
-      titleTemplate: "%s – My Docs",
-    };
+    const { asPath } = useRouter();
+    if (asPath !== "/docs/home") {
+      return {
+        titleTemplate: "%s – My Docs",
+      };
+    }
   },
   head: (
     <>
