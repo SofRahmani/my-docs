@@ -4,7 +4,7 @@
 
 ## Mise en place de Prisma (ORM)
 
-Si Prisma n'est pas installé de façon global sur votre poste, il vous faudra exécuter cette commande dans le terminal :
+Si Prisma n'est pas installé de façon globale sur votre poste, il vous faudra exécuter cette commande dans le terminal :
 
 ```bash copy
 pnpm install prisma --save-dev
@@ -17,7 +17,7 @@ pnpx prisma init
 ```
 
 Cela va automatiquement initialiser Prisma sur votre projet et ainsi créer un dossier `prisma` contenant un fichier `schema.prisma` à la racine du projet.
-Pour l'instant nous allons laisser ce fichier telle quelle et nous y reviendrons plus bas.
+Pour l'instant nous allons laisser ce fichier tel quel et nous y reviendrons plus bas.
 
 ## Mise en place d'Auth.js (Next Auth)
 
@@ -27,7 +27,7 @@ Exécutez la commande suivante dans votre terminal pour installer Auth.js :
 pnpm install next-auth
 ```
 
-> Au moment où j'écris cette article, la version `5.0.0-beta.15` et elle corrige pas mal de problème de la version `^14`. Donc je vous conseil fortement de l'exécuter en ajoutant `@beta` collé à `auth` de la commande ci-dessus.
+> Au moment où j'écris cet article, la version `5.0.0-beta.15` corrige pas mal de problèmes de la version `^14`. Donc je vous conseille fortement de l'exécuter en ajoutant `@beta` collé à `auth` de la commande ci-dessus.
 
 Nous allons, aussi, directement créer une variable d'environnement qui nous sera utile pour la suite. Pour cela, créez un fichier `.env.local` à la racine de votre projet et dans un nouveau terminal, exécutez la commande suivante :
 
@@ -43,7 +43,7 @@ NEXTAUTH_SECRET=VotreCléSecrète
 
 ## Ajout du prismaAdapter
 
-Pour cela, nous allons commencer par installer deux nouvelles dépendences :
+Pour cela, nous allons commencer par installer deux nouvelles dépendances :
 
 ```bash copy
 pnpm install @prisma/client @auth/prisma-adapter
@@ -51,7 +51,7 @@ pnpm install @prisma/client @auth/prisma-adapter
 
 > Pour la suite nous allons ajouter le provider de Google. Je vous invite donc à poursuivre [ici](/docs/auth/providers/google-provider) et à revenir sur cette page une fois la partie de Google terminée.
 
-Une fois installées, nous allons créer un fichier `auth.ts` dans `src/auth` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_. Une fois crée, nous allons y renseigner ce bout de code :
+Une fois installées, nous allons créer un fichier `auth.ts` dans `src/auth` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_. Une fois créé, nous allons y renseigner ce bout de code :
 
 ```ts filename="auth.ts" copy showLineNumbers
 import NextAuth from "next-auth";
@@ -61,19 +61,24 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const { handlers, auth: baseAuth, signIn, signOut } = NextAuth({
+export const {
+  handlers,
+  auth: baseAuth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [Google({ clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET })],
 });
 ```
 
-A ce stade, si vous utilisez Typescript vous devez avoir des erreur de type sur `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`. Pour résoudre ce problème et rendre nos variable d'environnement TypeSafe, nous allons installer une super librairie : [T3 Env](https://env.t3.gg/).
+A ce stade, si vous utilisez Typescript vous devez avoir des erreurs de type sur `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`. Pour résoudre ce problème et rendre nos variables d'environnement TypeSafe, nous allons installer une super librairie : [T3 Env](https://env.t3.gg/).
 
 ```bash copy
 pnpm add @t3-oss/env-nextjs zod
 ```
 
-Une fois installée, nous allons créer le fichier suivant dans `src/` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_ :
+Une fois installée, nous allons créer le fichier suivant dans `src/` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_:
 
 ```ts filename="env.ts" copy showLineNumbers
 import { createEnv } from "@t3-oss/env-nextjs";
@@ -94,7 +99,7 @@ export const env = createEnv({
 });
 ```
 
-Comme expliqué plus tôt, ce fichier nous permet de rendre nos variable d'environnement TypeSafe, mais pour l'utiliser nous allons devoir l'importer dans notre fichier `src/auth/auth.ts`. Voici comment :
+Comme expliqué plus tôt, ce fichier nous permet de rendre nos variables d'environnement TypeSafe, mais pour l'utiliser nous allons devoir l'importer dans notre fichier `src/auth/auth.ts`. Voici comment :
 
 ```ts filename="auth.ts" {1, 11} showLineNumbers copy
 import { env } from "@/env";
@@ -105,13 +110,18 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const { handlers, auth: baseAuth, signIn, signOut } = NextAuth({
+export const {
+  handlers,
+  auth: baseAuth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [Google({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET })],
 });
 ```
 
-Continuons en créant un fichier `api/auth/[...nextauth]/route.ts` dans lequel nous allons y ajouter ce code :
+Continuons en créant un fichier `src/app/api/auth/[...nextauth]/route.ts` dans lequel nous allons y ajouter ce code :
 
 ```ts filename="route.ts" copy showLineNumbers
 import { hendlers } from "@/auth/auth";
@@ -122,7 +132,7 @@ export const { GET, POST } = handlers;
 ### Retour sur le schema de notre base de données
 
 Maintenant retournons dans notre fichier `/prisma/schema.prisma` et mettons le à jour grâce au prismaAdapter.
-Pour cela, il vous faudra y supprimer tout le contenu et ajouter les modèle suivant :
+Pour cela, il vous faudra y supprimer tout le contenu et ajouter les modèles suivants :
 
 ```prisma showLineNumbers copy filename="schema.prisma"
 datasource db {
@@ -182,10 +192,10 @@ model VerificationToken {
 }
 ```
 
-Ce modèle est directement issue de la documentation de Next Auth et permet de gérer tout type d'authentification.
-Il est bien sûr modifiable en fonction de vos besoin, mais je ne vous conseil pas de supprimer quoi que ce soit, mais plutôt d'ajouter ce dont vous avez besoin pour votre base de données.
+Ce modèle est directement issu de la documentation de Next Auth et permet de gérer tous les types d'authentification.
+Il est bien sûr modifiable en fonction de vos besoins, mais je ne vous conseille pas de supprimer quoi que ce soit, mais plutôt d'ajouter ce dont vous avez besoin pour votre base de données.
 
-> Pour information : Dans ce guide j'utilise Postgresql comme base de données, mais vous pouvez utilisé celle que vous souhaitez en modifiant la parti suivante du fichier `schema.prisma`. Bien sûr, il faudra adapter les modèle de table. Je vous renvoi donc sur la documentation officielle pour le moment.
+> Pour information : Dans ce guide j'utilise Postgresql comme base de données, mais vous pouvez utiliser celle que vous souhaitez en modifiant la partie suivante du fichier `schema.prisma`. Bien sûr, il faudra adapter les modèles de table. Je vous renvoie donc sur la documentation officielle pour le moment.
 
 ```prisma showLineNumbers copy filename="schema.prisma" {2}
 datasource db {
@@ -205,9 +215,10 @@ Une fois installé, nous allons devoir créer une base de données. Puis ajouter
 ```env copy
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 ```
+
 > N'oubliez pas de remplacer `user`, `password` et `dbname` par vos informations.
 
-Maintenant que tout est en place, nous allons devoir exécuter la commande suivante pour migrer notre schema vers notre base de données :
+Maintenant que tout est en place, nous allons devoir exécuter la commande suivante pour migrer notre schéma vers notre base de données :
 
 ```bash copy
 pnpx prisma migrate dev --name init
@@ -218,18 +229,19 @@ pnpx prisma migrate dev --name init
 Pour commencer, nous allons créer un fichier `src/actions/auth.action.ts` dans lequel nous allons créer deux Server Actions :
 
 ```ts filename="auth.action.ts" copy showLineNumbers
-'use server' // Permet de dire que ce fichier est un Server Action.
-import { signIn, signOut } from '@/auth/auth'
+"use server"; // Permet de dire que ce fichier est un Server Action.
+import { signIn, signOut } from "@/auth/auth";
 
 export const signOutAction = async () => {
-  await signOut()
-}
+  await signOut();
+};
 
 export const signInAction = async () => {
-  await signIn()
-}
+  await signIn();
+};
 ```
-> L'usage de ces Server Actions nous permet de ne pas passer par le process habituel en créant des endpoints API. Cela nous permet de gagner du temps et de la lisibilité dans notre code. 
+
+> L'usage de ces Server Actions nous permet de ne pas passer par le process habituel en créant des endpoints API. Cela nous permet de gagner du temps et de la lisibilité dans notre code.
 
 Une fois ces actions créées, nous allons créer un composant `LoginButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
 
@@ -252,7 +264,8 @@ export default function LoginButton() {
   );
 }
 ```
-Faison de même pour le bouton de déconnexion en créant un composant `LogoutButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
+
+Faisons de même pour le bouton de déconnexion en créant un composant `LogoutButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
 
 ```tsx filename="LogoutButton.tsx" copy showLineNumbers
 "use client"; // Ce composant doit être utilisé côté client.
@@ -272,9 +285,10 @@ export default function LogoutButton() {
   );
 }
 ```
-> Dans cet exemple, j'utilise un composant `Button` qui est issue de la librairie [shadcn/ui](https://ui.shadcn.com/).
 
-Pour être certains que nous somme connecté ou non, nous allons créer un composant `LoggedInAvatar.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
+> Dans cet exemple, j'utilise un composant `Button` qui est issu de la librairie [shadcn/ui](https://ui.shadcn.com/).
+
+Pour être certain que nous sommes connectés ou non, nous allons créer un composant `LoggedInAvatar.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
 
 ```tsx filename="LoggedInAvatar.tsx" copy showLineNumbers
 import { baseAuth } from "@/auth/auth";
@@ -311,7 +325,7 @@ export default async function LoggedInAvatar() {
 
 Dans cet exemple, si l'utilisateur est connecté et qu'il a une image de profil, nous l'affichons. Sinon, nous générons une image de profil aléatoire en fonction de son nom ou de la première partie de son email. Pour ce faire, nous utilisons l'API [Dicebear](https://avatars.dicebear.com/).
 
-Pour finir, il ne vous reste plus qu'à importer ces composants dans votre page et à les utiliser. Si tout fonctionne correctement, vous devrie etre capable de vous connecter et de vous déconnecter de votre application et d'afficher les informations de l'utilisateur connecté.
+Pour finir, il ne vous reste plus qu'à importer ces composants dans votre page et à les utiliser. Si tout fonctionne correctement, vous devriez être capable de vous connecter et de vous déconnecter de votre application et d'afficher les informations de l'utilisateur connecté.
 
 ## Conclusion
 
