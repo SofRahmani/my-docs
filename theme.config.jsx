@@ -30,7 +30,7 @@ export default {
       />
     </>
   ),
-  docsRepositoryBase: "https://github.com/SofRahmani/my-docs/discussions",
+  docsRepositoryBase: "https://github.com/SofRahmani/my-docs/",
   editLink: {
     component: null,
   },
