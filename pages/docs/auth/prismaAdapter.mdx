@@ -1,0 +1,318 @@
+# Guide étape par étape pour setup Next Auth avec prismaAdapter
+
+> Plongez dans le monde de l'authentification sécurisée avec ce guide étape par étape pour configurer Next Auth avec prismaAdapter. Cette documentation complète vous guidera à travers chaque étape du processus, depuis la configuration initiale jusqu'à la mise en place concrète de l'authentification dans vos applications Next.js. En suivant ce guide, vous pourrez intégrer facilement et efficacement un système d'authentification robuste basé sur les meilleures pratiques, en utilisant la puissance de Next.js et la flexibilité de prismaAdapter. Que vous soyez novice ou expert en développement web, ce guide vous permettra de mettre en place rapidement une authentification sécurisée pour vos projets.
+
+## Mise en place de Prisma (ORM)
+
+Si Prisma n'est pas installé de façon global sur votre poste, il vous faudra exécuter cette commande dans le terminal :
+
+```bash copy
+pnpm install prisma --save-dev
+```
+
+Une fois installé, exécutez la commande suivante :
+
+```bash copy
+pnpx prisma init
+```
+
+Cela va automatiquement initialiser Prisma sur votre projet et ainsi créer un dossier `prisma` contenant un fichier `schema.prisma` à la racine du projet.
+Pour l'instant nous allons laisser ce fichier telle quelle et nous y reviendrons plus bas.
+
+## Mise en place d'Auth.js (Next Auth)
+
+Exécutez la commande suivante dans votre terminal pour installer Auth.js :
+
+```bash copy
+pnpm install next-auth
+```
+
+> Au moment où j'écris cette article, la version `5.0.0-beta.15` et elle corrige pas mal de problème de la version `^14`. Donc je vous conseil fortement de l'exécuter en ajoutant `@beta` collé à `auth` de la commande ci-dessus.
+
+Nous allons, aussi, directement créer une variable d'environnement qui nous sera utile pour la suite. Pour cela, créez un fichier `.env.local` à la racine de votre projet et dans un nouveau terminal, exécutez la commande suivante :
+
+```pwsh copy
+openssl rand -base64 32
+```
+
+Cela va générer une clé secrète que vous allez devoir copier et coller dans le fichier `.env.local` de cette manière :
+
+```env copy
+NEXTAUTH_SECRET=VotreCléSecrète
+```
+
+## Ajout du prismaAdapter
+
+Pour cela, nous allons commencer par installer deux nouvelles dépendences :
+
+```bash copy
+pnpm install @prisma/client @auth/prisma-adapter
+```
+
+> Pour la suite nous allons ajouter le provider de Google. Je vous invite donc à poursuivre [ici](/docs/auth/providers/google-provider) et à revenir sur cette page une fois la partie de Google terminée.
+
+Une fois installées, nous allons créer un fichier `auth.ts` dans `src/auth` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_. Une fois crée, nous allons y renseigner ce bout de code :
+
+```ts filename="auth.ts" copy showLineNumbers
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const { handlers, auth: baseAuth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [Google({ clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET })],
+});
+```
+
+A ce stade, si vous utilisez Typescript vous devez avoir des erreur de type sur `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`. Pour résoudre ce problème et rendre nos variable d'environnement TypeSafe, nous allons installer une super librairie : [T3 Env](https://env.t3.gg/).
+
+```bash copy
+pnpm add @t3-oss/env-nextjs zod
+```
+
+Une fois installée, nous allons créer le fichier suivant dans `src/` _(si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine)_ :
+
+```ts filename="env.ts" copy showLineNumbers
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
+
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.string().url(),
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
+  },
+
+  client: {},
+
+  experimental__runtimeEnv: {
+    NEXT_PUBLIC_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_PUBLISHABLE_KEY,
+  },
+});
+```
+
+Comme expliqué plus tôt, ce fichier nous permet de rendre nos variable d'environnement TypeSafe, mais pour l'utiliser nous allons devoir l'importer dans notre fichier `src/auth/auth.ts`. Voici comment :
+
+```ts filename="auth.ts" {1, 11} showLineNumbers copy
+import { env } from "@/env";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const { handlers, auth: baseAuth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [Google({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET })],
+});
+```
+
+Continuons en créant un fichier `api/auth/[...nextauth]/route.ts` dans lequel nous allons y ajouter ce code :
+
+```ts filename="route.ts" copy showLineNumbers
+import { hendlers } from "@/auth/auth";
+
+export const { GET, POST } = handlers;
+```
+
+### Retour sur le schema de notre base de données
+
+Maintenant retournons dans notre fichier `/prisma/schema.prisma` et mettons le à jour grâce au prismaAdapter.
+Pour cela, il vous faudra y supprimer tout le contenu et ajouter les modèle suivant :
+
+```prisma showLineNumbers copy filename="schema.prisma"
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  // Only needed when using a cloud provider that doesn't support the creation of new databases, like Heroku. Learn more: https://pris.ly/d/migrate-shadow
+}
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+```
+
+Ce modèle est directement issue de la documentation de Next Auth et permet de gérer tout type d'authentification.
+Il est bien sûr modifiable en fonction de vos besoin, mais je ne vous conseil pas de supprimer quoi que ce soit, mais plutôt d'ajouter ce dont vous avez besoin pour votre base de données.
+
+> Pour information : Dans ce guide j'utilise Postgresql comme base de données, mais vous pouvez utilisé celle que vous souhaitez en modifiant la parti suivante du fichier `schema.prisma`. Bien sûr, il faudra adapter les modèle de table. Je vous renvoi donc sur la documentation officielle pour le moment.
+
+```prisma showLineNumbers copy filename="schema.prisma" {2}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  // Only needed when using a cloud provider that doesn't support the creation of new databases, like Heroku. Learn more: https://pris.ly/d/migrate-shadow
+}
+```
+
+## Migration des données
+
+Avant de pouvoir exécuter notre commande prisma pour migrer notre schema vers notre base de données, nous allons devoir setup une base de données Postgresql en local. Pour cela, je vous invite à suivre ce [tutoriel](https://www.postgresqltutorial.com/install-postgresql/) pour installer Postgresql sur votre machine.
+
+Une fois installé, nous allons devoir créer une base de données. Puis ajouter une variable d'environnement `DATABASE_URL` dans un fichier `.env` à la racine de notre projet. Voici un exemple de ce que vous pouvez mettre dans ce fichier :
+
+```env copy
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+```
+> N'oubliez pas de remplacer `user`, `password` et `dbname` par vos informations.
+
+Maintenant que tout est en place, nous allons devoir exécuter la commande suivante pour migrer notre schema vers notre base de données :
+
+```bash copy
+pnpx prisma migrate dev --name init
+```
+
+## Testons notre authentification
+
+Pour commencer, nous allons créer un fichier `src/actions/auth.action.ts` dans lequel nous allons créer deux Server Actions :
+
+```ts filename="auth.action.ts" copy showLineNumbers
+'use server' // Permet de dire que ce fichier est un Server Action.
+import { signIn, signOut } from '@/auth/auth'
+
+export const signOutAction = async () => {
+  await signOut()
+}
+
+export const signInAction = async () => {
+  await signIn()
+}
+```
+> L'usage de ces Server Actions nous permet de ne pas passer par le process habituel en créant des endpoints API. Cela nous permet de gagner du temps et de la lisibilité dans notre code. 
+
+Une fois ces actions créées, nous allons créer un composant `LoginButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
+
+```tsx filename="LoginButton.tsx" copy showLineNumbers
+"use client"; // Ce composant doit être utilisé côté client.
+import { signInAction } from "@/actions/auth.action";
+import { Button } from "@/components/ui/button";
+
+export default function LoginButton() {
+  return (
+    <Button
+      variant={"secondary"}
+      size={"sm"}
+      onClick={() => {
+        signInAction();
+      }}
+    >
+      Me connecter
+    </Button>
+  );
+}
+```
+Faison de même pour le bouton de déconnexion en créant un composant `LogoutButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
+
+```tsx filename="LogoutButton.tsx" copy showLineNumbers
+"use client"; // Ce composant doit être utilisé côté client.
+import { signOutAction } from "@/actions/auth.action";
+import { Button } from "@/components/ui/button";
+
+export default function LogoutButton() {
+  return (
+    <Button
+      variant={"default"}
+      onClick={() => {
+        signOutAction();
+      }}
+    >
+      Déconnexion
+    </Button>
+  );
+}
+```
+> Dans cet exemple, j'utilise un composant `Button` qui est issue de la librairie [shadcn/ui](https://ui.shadcn.com/).
+
+Pour être certains que nous somme connecté ou non, nous allons créer un composant `LoggedInAvatar.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
+
+```tsx filename="LoggedInAvatar.tsx" copy showLineNumbers
+import { baseAuth } from "@/auth/auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+export default async function LoggedInAvatar() {
+  const session = await baseAuth(); // Nous permet de récupérer la session s'il y en a une.
+  const user = session?.user; // Permet de cibler l'utilisateur connecté.
+
+  const firstPartOfEmail = user?.email?.split("@")[0]; // Optionnel, permet de récupérer le premier partie de l'email.
+
+  return (
+    <Avatar>
+      <AvatarFallback>{user?.name ? user?.name[0] : ""}</AvatarFallback>
+      {user?.image ? (
+        <AvatarImage
+          className="cursor-pointer select-none"
+          src={user?.image}
+          alt={`${user?.name ?? "User"}'s image`}
+        />
+      ) : (
+        <AvatarImage
+          className="cursor-pointer select-none"
+          src={`https://api.dicebear.com/8.x/avataaars-neutral/svg?seed=${
+            user?.name ?? firstPartOfEmail
+          }`}
+          alt={`${user?.name ?? "User"}'s image`}
+        />
+      )}
+    </Avatar>
+  );
+}
+```
+
+Dans cet exemple, si l'utilisateur est connecté et qu'il a une image de profil, nous l'affichons. Sinon, nous générons une image de profil aléatoire en fonction de son nom ou de la première partie de son email. Pour ce faire, nous utilisons l'API [Dicebear](https://avatars.dicebear.com/).
+
+Pour finir, il ne vous reste plus qu'à importer ces composants dans votre page et à les utiliser. Si tout fonctionne correctement, vous devrie etre capable de vous connecter et de vous déconnecter de votre application et d'afficher les informations de l'utilisateur connecté.
+
+## Conclusion
+
+> Félicitations ! Vous avez réussi à mettre en place une authentification sécurisée avec Next Auth et prismaAdapter. Grâce à ce guide étape par étape, vous avez appris à configurer Next Auth avec prismaAdapter, à créer des Server Actions pour gérer l'authentification, et à afficher les informations de l'utilisateur connecté dans votre application. Vous avez également appris à utiliser des composants réutilisables pour gérer la connexion et la déconnexion de l'utilisateur. En suivant ce guide, vous avez acquis les compétences nécessaires pour mettre en place une authentification sécurisée dans vos projets Next.js, en utilisant les meilleures pratiques et les outils les plus performants. Vous êtes maintenant prêt à intégrer un système d'authentification robuste et fiable dans vos applications web, et à offrir à vos utilisateurs une expérience sécurisée et personnalisée. Bravo pour votre réussite et bonne continuation dans vos projets de développement web !
