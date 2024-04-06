@@ -101,7 +101,7 @@ export const env = createEnv({
 
 Comme expliqué plus tôt, ce fichier nous permet de rendre nos variables d'environnement TypeSafe, mais pour l'utiliser nous allons devoir l'importer dans notre fichier `src/auth/auth.ts`. Voici comment :
 
-```ts filename="auth.ts" {1, 11} showLineNumbers copy
+```ts filename="auth.ts" {1, 16} showLineNumbers copy
 import { env } from "@/env";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
@@ -245,7 +245,7 @@ export const signInAction = async () => {
 
 Une fois ces actions créées, nous allons créer un composant `LoginButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
 
-```tsx filename="LoginButton.tsx" copy showLineNumbers
+```tsx filename="LoginButton.tsx" copy showLineNumbers {2, 10-12}
 "use client"; // Ce composant doit être utilisé côté client.
 import { signInAction } from "@/actions/auth.action";
 import { Button } from "@/components/ui/button";
@@ -267,7 +267,7 @@ export default function LoginButton() {
 
 Faisons de même pour le bouton de déconnexion en créant un composant `LogoutButton.tsx` dans le dossier `src/components/auth` qui comportera le code suivant :
 
-```tsx filename="LogoutButton.tsx" copy showLineNumbers
+```tsx filename="LogoutButton.tsx" copy showLineNumbers {2, 9-11}
 "use client"; // Ce composant doit être utilisé côté client.
 import { signOutAction } from "@/actions/auth.action";
 import { Button } from "@/components/ui/button";
