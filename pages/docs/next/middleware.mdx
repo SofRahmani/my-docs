@@ -1,1 +1,116 @@
-> Guide en cours de préparation...
+# Méthode simple et lisible pour enchainer les Middlewares en Next JS
+
+> Ce petit guide vous permettra de comprendre comment enchainer les middlewares dans Next JS de manière simple, lisible et surtout **maintenable** dans une application en Next JS 14.
+
+## Qu'est-ce qu'un Middleware ?
+
+En Next.js, un middleware est une fonction qui est exécutée avant de rendre une page ou de manipuler une requête HTTP. Ces middlewares sont utilisés pour effectuer des tâches telles que l'authentification, l'autorisation, la gestion des cookies, la validation des données, ou toute autre opération de traitement de requête nécessaire pour votre application.
+
+## Comment utiliser un middleware unique dans Next JS ?
+
+Ce guide se concentrera sur l'utilisation de plusieurs middlewares dans Next JS. Cependant, si vous souhaitez utiliser un middleware unique, vous pouvez lire la super documentation de Next JS [ici](https://nextjs.org/docs/app/building-your-application/routing/middleware).
+
+## Comment enchainer les middlewares dans Next JS ?
+
+Il existe plusieurs méthodes pour enchainer les Middleware en Next JS. Cependant, la méthode la plus simple et la plus lisible est d'utiliser une fonction qui prend en paramètre un tableau de middlewares et qui les enchaine les uns après les autres.
+
+Pour notre exemple, nous allons créer un fichier `chain.ts` dans le dossier `src/middleware` _(Si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce dossier à la racine du projet)_. Ce fichier contiendra la fonction `chain` qui prendra en paramètre un tableau de middlewares et les enchainera les uns après les autres.
+
+```ts filename="chain.ts" copy showLineNumbers
+import { NextMiddlewareResult } from "next/dist/server/web/types";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+
+export type CustomMiddleware = (
+  request: NextRequest,
+  event: NextFetchEvent,
+  response: NextResponse
+) => NextMiddlewareResult | Promise<NextMiddlewareResult>;
+
+type MiddlewareFactory = (middleware: CustomMiddleware) => CustomMiddleware;
+
+export function chain(functions: MiddlewareFactory[], index = 0): CustomMiddleware {
+  const current = functions[index];
+
+  if (current) {
+    const next = chain(functions, index + 1);
+    return current(next);
+  }
+
+  return (request: NextRequest, event: NextFetchEvent, response: NextResponse) => {
+    return response;
+  };
+}
+```
+
+Cette fonction prend en paramètre un tableau de middlewares `functions` et un index `index` qui est initialisé à 0. Elle retourne une fonction qui prend en paramètre `request`, `event` et `response` et qui enchaine les middlewares les uns après les autres. Si tous les middlewares ont été exécutés, la fonction retourne la réponse.
+
+## Créons un middleware pour notre exemple
+
+Pour notre exemple, nous allons créer un fichier `withI18nMiddleware.ts` dans le dossier `src/middleware`. Ce middleware va simplement ajouter une propriété `locale` à l'objet `request` qui contiendra la locale de l'utilisateur.
+
+```ts filename="withI18nMiddleware.ts" copy showLineNumbers
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+
+import { i18n } from "@/i18n.config";
+
+import { match as matchLocale } from "@formatjs/intl-localematcher";
+import Negotiator from "negotiator";
+import { CustomMiddleware } from "./chain";
+
+function getLocale(request: NextRequest): string | undefined {
+  const negotiatorHeaders: Record<string, string> = {};
+  request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
+
+  // @ts-ignore locales are readonly
+  const locales: string[] = i18n.locales;
+  const languages = new Negotiator({ headers: negotiatorHeaders }).languages(locales);
+
+  const locale = matchLocale(languages, locales, i18n.defaultLocale);
+  return locale;
+}
+
+export function middleware(request: NextRequest) {}
+
+export function withI18nMiddleware(middleware: CustomMiddleware) {
+  return async (request: NextRequest, event: NextFetchEvent, response: NextResponse) => {
+    const pathname = request.nextUrl.pathname;
+    const pathnameIsMissingLocal = i18n.locales.every(
+      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+    );
+
+    // Redirect of there is no locale
+    if (pathnameIsMissingLocal) {
+      const locale = getLocale(request);
+      return NextResponse.redirect(
+        new URL(`/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`, request.url)
+      );
+    }
+
+    return middleware(request, event, response);
+  };
+}
+```
+
+## Comment utiliser la fonction `chain` ?
+
+Pour cela, il nous suffit d'importer notre fonction `chain` dans le fichier `middleware.ts` qui se trouve directement dans le dossier `src/` _(Si vous n'utilisez pas le src folder de Next JS, vous pouvez créer ce fichier à la racine du projet)_.
+
+```ts filename="middleware.ts" copy showLineNumbers {1-2, 4}
+import { chain } from "./middleware/chain";
+import { withI18nMiddleware } from "./middleware/withI18nMiddleware";
+
+export default chain([withI18nMiddleware]);
+
+export const config = {
+  // Matcher ignoring `/_next/` and `/api/`
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+Dans ce fichier, nous importons notre fonction `chain` et notre middleware `withI18nMiddleware`. Nous exportons ensuite la fonction `chain` en lui passant un tableau contenant notre middleware `withI18nMiddleware`.
+
+## Conclusion
+
+> Grâce à cette méthode, vous pouvez enchainer les middlewares de manière simple, lisible et surtout **maintenable** dans une application en Next JS 14. Vous pouvez ajouter autant de middlewares que vous le souhaitez en les ajoutant simplement dans le tableau passé à la fonction `chain`.
