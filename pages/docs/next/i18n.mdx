@@ -1,0 +1,390 @@
+# Guide de mise en place de l'internationalisation (i18n) dans une application Next.js
+
+> Ce guide technique détaille pas à pas le processus de mise en place de l'internationalisation (i18n) dans une application Next.js. À travers des explications claires et des exemples pratiques, vous apprendrez comment configurer votre projet Next.js pour prendre en charge plusieurs langues et offrir une expérience utilisateur localisée. Ce guide fournit des instructions détaillées pour vous aider à rendre votre application Next.js accessible à un public mondial. Que vous débutiez avec Next.js ou cherchiez à étendre les fonctionnalités de votre application existante, ce document sera votre compagnon indispensable pour réussir la mise en place de l'internationalisation.
+
+## Installation des dépendances
+
+Pour commencer, vous devez installer les dépendances nécessaires pour la gestion de l'internationalisation dans votre application Next.js. Pour cela, vous pouvez utiliser la commande suivante :
+
+```bash copy
+pnpm install @formatjs/intl-localematcher negotiator
+```
+
+- `@formatjs/intl-localematcher` : Cette bibliothèque est utilisée pour déterminer la meilleure correspondance de locale (langue et région) à utiliser dans une application web. Elle fournit des fonctionnalités pour détecter automatiquement la langue préférée de l'utilisateur en fonction des informations fournies par le navigateur ou d'autres sources, comme les en-têtes HTTP. En résumé, @formatjs/intl-localematcher facilite la sélection de la meilleure langue à afficher dans une application en fonction des préférences linguistiques de l'utilisateur.
+- `negotiator` : Negociator est une bibliothèque qui permet de réaliser la négociation de contenu HTTP. Dans le contexte de l'internationalisation, elle peut être utilisée pour analyser les en-têtes HTTP accept-language envoyés par le navigateur de l'utilisateur. Ces en-têtes indiquent les langues préférées de l'utilisateur, ce qui est crucial pour fournir une expérience localisée dans une application web. Negotiator peut aider à extraire ces informations et à les utiliser pour déterminer la meilleure langue à utiliser dans le contenu de la page ou de l'application.
+
+## Configuration de la structure des fichiers
+
+> Pour ce guide, je pars du principe que vous utilisez le src folder de Next JS pour organiser votre code. Si ce n'est pas le cas, vous pouvez adapter les instructions en conséquence.
+
+Pour commencer, vous devez organiser votre code de manière à faciliter la gestion de l'internationalisation dans votre application Next.js. Voici une structure de fichiers recommandée pour gérer les fichiers liés à l'internationalisation :
+
+```txt
+src/
+└── app/
+    └── [lang]/
+        ├── components/
+        │   └── Button.tsx
+        ├── globals.css
+        ├── layout.tsx
+        ├── page.tsx
+        └── providers.tsx
+```
+
+Avec cette méthode, nous devont intégrer chaque éléments que nous voulons traduire dans le dossier `[lang]`. Par conséquent, le dossier `components` doit se trouvé dans le dossier `app/[lang]` pour que les composants soient traduits.
+
+## Configuration de l'internationalisation
+
+Pour commencer, nous allons créer un fichier `i18n.config.ts` à la racine de notre projet et y ajouter le code suivant :
+
+```ts filename="i18n.config.ts" showLineNumbers copy
+export const i18n = {
+  defaultLocale: "en",
+  locales: ["fr", "en"],
+} as const;
+export type Locale = (typeof i18n)["locales"][number];
+```
+
+Ce fichier permet de définir les paramètres de configuration de l'internationalisation dans votre application Next.js. Vous pouvez spécifier la langue par défaut (`defaultLocale`) et les langues prises en charge (`locales`). Dans cet exemple, nous avons défini les langues `fr` (français) et `en` (anglais) comme langues prises en charge. Vous pouvez ajouter d'autres langues selon les besoins de votre application.
+
+Une fois ce fichier créer, nous allons une props `lang` à notre fichier `layout.tsx` ainsi qu'une fonction pour générer les paramètres statique et ainsi fluidifier le chargement des textes. Pour cela :
+
+```tsx filename="layout.tsx" copy showLineNumbers {5, 15-17, 21, 24, 27}
+import "../globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import Providers from "./providers";
+import { Locale, i18n } from "@/i18n.config";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metaData: Metadata = {
+  title: "Next.js i18n Guide",
+  description:
+    "Guide de mise en place de l'internationalisation (i18n) dans une application Next.js",
+};
+
+export async function generateStaticParams() {
+  return i18n.localStorage.Map((locale) => ({ lang: locale }));
+}
+
+export default function RootLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: { lang: Locale };
+}) {
+  return (
+    <html lang={params.lang}>
+      <body className={internal.classname}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+## Créons nos dictionaires de traduction
+
+Dans cette étape, nous allons créer des fichiers de dictionnaire de traduction pour chaque langue prise en charge dans votre application Next.js. Ces fichiers contiendront les traductions des textes utilisés dans votre application. Voici un exemple de structure de fichiers recommandée pour les dictionnaires de traduction :
+
+```txt
+src/
+└── dictionaries/
+    ├── fr.json
+    └── en.json
+```
+
+Dans ces fichiers, vous pouvez définir les traductions pour chaque langue en utilisant une structure clé-valeur. Voici un exemple de contenu pour les fichiers `fr.json` et `en.json` :
+
+```json filename="fr.json" copy showLineNumbers
+{
+  "pages": {
+    "home": {
+      "title": "Gérer l'internationalisation dans Next.js",
+      "content": "Apprenez à configurer l'internationalisation dans votre application Next.js."
+    },
+    "about": {
+      "title": "À propos de nous",
+      "content": "Découvrez notre équipe et notre mission."
+    }
+  },
+
+  "components": {
+    "button": {
+      "home": "Accueil"
+    }
+  }
+}
+```
+
+```json filename="en.json" copy showLineNumbers
+{
+  "pages": {
+    "home": {
+      "title": "Managing Internationalization in Next.js",
+      "content": "Learn how to set up internationalization in your Next.js application."
+    },
+    "about": {
+      "title": "About Us",
+      "content": "Discover our team and our mission."
+    }
+  },
+
+  "components": {
+    "button": {
+      "home": "Home"
+    }
+  }
+}
+```
+
+Attention, il est important de respecter la structure des fichiers de traduction pour que les traductions soient correctement chargées dans votre application Next.js. Vous pouvez ajouter autant de clés de traduction que nécessaire pour couvrir tous les textes de votre application. Le clés doivent être identiques. Seuls les valeurs doivent être traduites.
+
+## Déclarons nos dictionnaires de traduction
+
+Pour pouvoir utiliser les dictionnaires de traduction dans notre application Next.js, nous allons créer le fichier `src/lib/dictionary.ts` et y ajouter le code suivant :
+
+```ts filename="dictionary.ts" copy showLineNumbers
+import "server-only";
+import type { Locale } from "@/i18n.config";
+
+const dictionaries = {
+  fr: () => import("../dictionaries/fr.json").then((module) => module.default),
+  en: () => import("../dictionaries/en.json").then((module) => module.default),
+};
+
+export const getDictionary = async (locale: Locale) => {
+  return dictionaries[locale]();
+};
+```
+
+Ce fichier permet de charger dynamiquement les dictionnaires de traduction en fonction de la langue sélectionnée dans votre application Next.js. Il utilise une méthode asynchrone pour charger le dictionnaire correspondant à la langue spécifiée. Vous pouvez ajouter d'autres langues et dictionnaires de traduction selon les besoins de votre application.
+
+## Cas d'utilisation
+
+Maintenant que nous avons configuré les dictionnaires de traduction et les paramètres de l'internationalisation dans notre application Next.js, nous allons voir comment utiliser ces éléments pour afficher des textes traduits dans notre application. Voici un exemple d'usage pour un composant :
+
+```tsx filename="Button.tsx" copy showLineNumbers
+import { Locale } from "@/i18n.config";
+import { Link } from "next/link";
+
+export interface ButtonProps {
+  text: string;
+  lang: Locale;
+}
+
+export default function Button({ text, lang }: ButtonProps) {
+  return (
+    <Link href={`/${lang}/accueil`}>
+      <button>{text}</button>
+    </Link>
+  );
+}
+```
+
+Dans ce composant `Button` nous créons un Bouton permettant de rediriger l'utilisateur vers la page d'accueil.
+Pour celà, nous utilisons la props `lang` que nous déclarons dans le lien pour rediriger l'utilisateur vers la page d'accueil de la langue sélectionnée. Nous utilisons également la props `text` pour afficher le texte du bouton en fonction de la lang sélectionnée par l'utilisateur.
+
+Voyons comment nous pouvons utiliser ce composant dans une page par exemple :
+
+```tsx filename="page.tsx" copy showLineNumbers {1-2, 5-6, 10-12}
+import { Locale } from "@/i18n.config";
+import { getDictionary } from "@/lib/dictionary";
+import Button from "./components/Button";
+
+export default async function Page({ params }: { params: { lang: Locale } }) {
+  const { pages, components } = await getDictionary(params.lang);
+
+  return (
+    <div>
+      <h1>{pages.about.title}</h1>
+      <p>{pages.about.content}</p>
+      <Button text={components.button.home} lang={lang} />
+    </div>
+  );
+}
+```
+Dans cet exemple, nous utilisons la fonction `getDictionary` pour charger le dictionnaire de traduction correspondant à la langue sélectionnée. Ensuite, nous utilisons les clés de traduction pour afficher les textes traduits dans la page. Nous passons également `{components.button.home}` dans la props `text` du composant `Button` pour afficher le texte du bouton en fonction de la langue sélectionnée. 
+
+> Globalement, à chaque fois que vous souhaitez afficher un texte traduit dans votre application Next.js, vous devez charger le dictionnaire de traduction correspondant à la langue sélectionnée et utiliser les clés de traduction pour afficher les textes traduits et document, ne plus écrire de texte brute dans vos composants et vos pages. Cela vous permettra d'offrir une expérience utilisateur localisée à vos utilisateurs dans différentes langues.
+
+## Donner à l'utilisateur la possibilité de changer de langue
+
+Pour offrir une expérience utilisateur complète, vous pouvez ajouter une fonctionnalité permettant à l'utilisateur de changer la langue de l'application. Pour cela, vous pouvez ajouter un sélecteur de langue dans votre application Next.js. Voici un exemple de code pour un composant de sélecteur de langue :
+
+```tsx filename="LanguageSelector.tsx" copy showLineNumbers
+"use client";
+import { i18n } from "@/i18n.config";
+import { Button } from "@nextui-org/button";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export function ToggleLaguage() {
+  const pathname = usePathname();
+  const redirectedPathname = (locale: string) => {
+    if (!pathname) return `/`;
+    const segments = pathname.split("/");
+    segments[1] = locale;
+    return segments.join("/");
+  };
+
+  return (
+    <div className=" flex flex-row gap-4 ">
+      {i18n.locales.map(locale => {
+        return (
+          <Link key={locale} href={redirectedPathname(locale)}>
+            <Button
+              disableRipple
+              className="bg-transparent p-0 hover:border-[#f67373] hover:text-[#f67373] data-[hover=true]:bg-transparent"
+              radius="sm"
+              size="sm"
+              variant="bordered"
+            >
+              {locale.toUpperCase()}
+            </Button>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+```
+La fonction `ToggleLanguage` permet de créer un sélecteur de langue qui affiche les langues prises en charge dans votre application Next.js. Lorsque l'utilisateur sélectionne une langue, il est redirigé vers la page d'accueil de la langue sélectionnée. Vous pouvez personnaliser le style et le comportement du sélecteur de langue selon les besoins de votre application.
+
+Pour utiliser ce composant dans votre application Next.js, vous pouvez l'ajouter à votre `layout.tsx` ou à un autre composant de mise en page. Par exemple :
+
+```tsx filename="layout.tsx" copy showLineNumbers {6, 30}
+import "../globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import Providers from "./providers";
+import { Locale, i18n } from "@/i18n.config";
+import { ToggleLanguage } from "./LanguageSelector";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metaData: Metadata = {
+  title: "Next.js i18n Guide",
+  description:
+    "Guide de mise en place de l'internationalisation (i18n) dans une application Next.js",
+};
+
+export async function generateStaticParams() {
+  return i18n.localStorage.Map((locale) => ({ lang: locale }));
+}
+
+export default function RootLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: { lang: Locale };
+}) {
+  return (
+    <html lang={params.lang}>
+      <body className={internal.classname}>
+        <ToggleLanguage />
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+## Middleware 
+
+> Pour la suite de ce guide, nous allons créer un middleware que nous utiliserons dans une fonction `chain`. Cette fonction nous permettra d'utiliser plusieurs middleware dans notre application Next.js tout en gardant un code lisible et maintenable. Je vous montrerai donc comment coder un middleware pour l'internationalisation, mais si vous souhaitez savoir comment créer cette fonction `chain`, je vous invite à consulter la documentation qui en parle [ici](/docs/next/middleware).
+
+Pour commencer nous allons créer une fichier `src/middleware/withI18nMiddleware.ts` et y ajouter le code suivant :
+
+```ts filename="withI18nMiddleware.ts" copy showLineNumbers
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+
+import { i18n } from "@/i18n.config";
+
+import { match as matchLocale } from "@formatjs/intl-localematcher";
+import Negotiator from "negotiator";
+import { CustomMiddleware } from "./chain";
+
+function getLocale(request: NextRequest): string | undefined {
+  const negotiatorHeaders: Record<string, string> = {};
+  request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
+
+  // @ts-ignore locales are readonly
+  const locales: string[] = i18n.locales;
+  const languages = new Negotiator({ headers: negotiatorHeaders }).languages(locales);
+
+  const locale = matchLocale(languages, locales, i18n.defaultLocale);
+  return locale;
+}
+
+export function middleware(request: NextRequest) {}
+
+export function withI18nMiddleware(middleware: CustomMiddleware) {
+  return async (request: NextRequest, event: NextFetchEvent, response: NextResponse) => {
+    const pathname = request.nextUrl.pathname;
+    const pathnameIsMissingLocal = i18n.locales.every(
+      locale => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+    );
+
+    // Redirect of there is no locale
+    if (pathnameIsMissingLocal) {
+      const locale = getLocale(request);
+      return NextResponse.redirect(
+        new URL(`/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`, request.url)
+      );
+    }
+
+    return middleware(request, event, response);
+  };
+}
+```
+Cette fonction `withI18nMiddleware` permet de créer un middleware pour l'internationalisation dans votre application Next.js. Elle utilise la fonction `getLocale` pour déterminer la langue préférée de l'utilisateur en fonction des en-têtes HTTP accept-language envoyés par le navigateur. Si la langue n'est pas spécifiée dans l'URL, le middleware redirige l'utilisateur vers la page correspondante dans la langue préférée. 
+
+### Utilisation du middleware
+
+Pour utiliser ce middleware vous devez le déclarer dans votre fonction `chain` présente dans le fichier `src/middleware.ts` de votre application Next. 
+Voici un exemple de code pour déclarer le middleware d'internationalisation dans votre fonction `chain` :
+
+```ts filename="middleware.ts" copy showLineNumbers {2, 4}
+import { chain } from './middleware/chain'
+import { withI18nMiddleware } from './middleware/withI18nMiddleware'
+
+export default chain([withI18nMiddleware])
+
+export const config = {
+  // Matcher ignoring `/_next/` and `/api/`
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+Voici la structure des fichier de votre application Next.js après avoir suivi ce guide :
+
+```txt
+root/
+├── src/
+│   ├── app/
+│   │   └── [lang]/
+│   │       ├── components/
+│   │       │   └── Button.tsx
+│   │       ├── layout.tsx
+│   │       ├── page.tsx
+│   │       └── providers.tsx
+│   ├── dictionaries/
+│   │   ├── fr.json
+│   │   └── en.json
+│   ├── lib/
+│   │   └── dictionary.ts
+│   ├── middleware/
+│   │   ├── chain.ts
+│   │   └── withI18nMiddleware.ts
+│   └── middleware.ts
+└── i18n.config.ts
+```
+
+## Conclusion
+
+> Félicitations ! Vous avez réussi à mettre en place l'internationalisation dans votre application Next.js. Vous avez appris à configurer les paramètres de l'internationalisation, à créer des dictionnaires de traduction, à charger les textes traduits dans votre application, à permettre à l'utilisateur de changer de langue et à utiliser un middleware pour gérer l'internationalisation. Grâce à ces étapes, vous pouvez offrir une expérience utilisateur localisée à vos utilisateurs dans différentes langues. Vous pouvez maintenant étendre ces fonctionnalités et personnaliser l'internationalisation selon les besoins de votre application Next.js. Happy coding ! 🚀
