@@ -1,4 +1,6 @@
 {
-  "middleware": "Chain Middlewares",
+  "middleware": {
+    "title": "Chain Middlewares"
+  },
   "i18n": "i18n"
 }
