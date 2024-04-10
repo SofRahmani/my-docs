@@ -22,11 +22,11 @@ export const metadata: Metadata = {
     title: "La documentation du développeur auto-didacte",
     siteName: "My Docs",
     description:
-      "Documentation personnelle enrichie par mon apprentissage et mes expérience dans le développement web.",
+      "Documentation personnelle enrichie par mon apprentissage et mes expériences dans le développement web.",
     images: [
       {
-        url: "https://i.imgur.com/e4X2lt9.png",
-        secureUrl: "/og-banner.png",
+        secureUrl: "https://i.imgur.com/e4X2lt9.png",
+        url: "https://docs.sofiane-rahmani.com/og-banner.png",
         width: 1200,
         height: 630,
         alt: "My Docs preview image",
