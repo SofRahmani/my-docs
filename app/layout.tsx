@@ -9,11 +9,28 @@ export const metadata: Metadata = {
   title: "My Docs",
   description:
     "Documentation personnelle enrichie par mon apprentissage et mes expérience dans le développement web.",
+  keywords: ["documentation", "développement web", "apprentissage", "autoformation", "autodidacte", "front-end", "back-end", "full-stack", "web", "web development", "web developer"],
 
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",
+  },
+
+  openGraph: {
+    type: "website",
+    url: "https://docs.sofiane-rahmani.com",
+    title: "My Docs",
+    description:
+      "Documentation personnelle enrichie par mon apprentissage et mes expérience dans le développement web.",
+    images: [
+      {
+        url: "/og-banner.png",
+        width: 1200,
+        height: 630,
+        alt: "My Docs",
+      },
+    ],
   },
 };
 
