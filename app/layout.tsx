@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
-    url: "https://docs.sofiane-rahmani.com",
+    url: "https://docs.sofiane-rahmani.com/docs",
     title: "La documentation du développeur auto-didacte",
     siteName: "My Docs",
     description:
