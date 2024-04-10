@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://docs.sofiane-rahmani.com"),
+  metadataBase: new URL("https://docs.sofiane-rahmani.com/docs"),
   title: "My Docs",
   description:
     "Documentation personnelle enrichie par mon apprentissage et mes expérience dans le développement web.",
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
       "Documentation personnelle enrichie par mon apprentissage et mes expériences dans le développement web.",
     images: [
       {
-        secureUrl: "https://i.imgur.com/e4X2lt9.png",
         url: "https://docs.sofiane-rahmani.com/og-banner.png",
+        secureUrl: "https://i.imgur.com/e4X2lt9.png",
         width: 1200,
         height: 630,
         alt: "My Docs preview image",
