@@ -13,23 +13,23 @@ export const metadata: Metadata = {
   keywords: ["documentation", "développement web", "apprentissage", "autoformation", "autodidacte", "front-end", "back-end", "full-stack", "web", "web development", "web developer"],
 
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.ico"
   },
 
   openGraph: {
     type: "website",
     url: "https://docs.sofiane-rahmani.com",
-    title: "My Docs",
+    title: "La documentation du développeur auto-didacte",
+    siteName: "My Docs",
     description:
       "Documentation personnelle enrichie par mon apprentissage et mes expérience dans le développement web.",
     images: [
       {
-        url: "/og-banner.png",
+        url: "https://i.imgur.com/e4X2lt9.png",
+        secureUrl: "/og-banner.png",
         width: 1200,
         height: 630,
-        alt: "My Docs",
+        alt: "My Docs preview image",
       },
     ],
   },
