@@ -1,4 +1,5 @@
 /* eslint-disable import/no-anonymous-default-export */
+import { Sidebar } from 'lucide-react'
 import { GanttChart } from "lucide-react";
 import { useRouter } from "next/router";
 
@@ -36,6 +37,9 @@ export default {
   },
   search: {
     placeholder: "Rechercher dans la doc...",
+  },
+  Sidebar: {
+    toggleButton: true,
   },
   toc: {
     title: "Dans Cette Page",
