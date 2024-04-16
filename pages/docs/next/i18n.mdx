@@ -65,7 +65,7 @@ export const metaData: Metadata = {
 };
 
 export async function generateStaticParams() {
-  return i18n.localStorage.Map((locale) => ({ lang: locale }));
+  return i18n.locales.Map((locale) => ({ lang: locale }));
 }
 
 export default function RootLayout({
